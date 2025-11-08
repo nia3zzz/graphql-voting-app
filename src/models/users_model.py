@@ -1,9 +1,14 @@
-from . import Base, voters_association_table
+from src.db.base import Base
+from .association_table import voters_association_table
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid import UUID, uuid4
 from sqlalchemy import String
 from typing import List
-from .vote_topics import VoteTopicModel
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .vote_topics import VoteTopicModel
 
 
 class UserModel(Base):
