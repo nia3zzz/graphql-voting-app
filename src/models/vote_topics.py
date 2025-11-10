@@ -1,10 +1,10 @@
 from src.db.base import Base
 from .association_table import voters_association_table
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, ForeignKey
+from sqlalchemy import String, ForeignKey, DateTime
 from uuid import UUID, uuid4
 from typing import List
-
+from datetime import datetime
 
 from typing import TYPE_CHECKING
 
@@ -19,6 +19,12 @@ class VoteTopicModel(Base):
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     description: Mapped[str] = mapped_column(String(300), nullable=False)
     created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now(), onupdate=datetime.now(), nullable=False
+    )
 
     creator: Mapped["UserModel"] = relationship(back_populates="created_vote_topics")
     voters: Mapped[List["UserModel"]] = relationship(

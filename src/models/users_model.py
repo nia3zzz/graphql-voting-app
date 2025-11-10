@@ -2,7 +2,8 @@ from src.db.base import Base
 from .association_table import voters_association_table
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from uuid import UUID, uuid4
-from sqlalchemy import String
+from sqlalchemy import String, DateTime
+from datetime import datetime
 from typing import List
 
 from typing import TYPE_CHECKING
@@ -18,6 +19,12 @@ class UserModel(Base):
     name: Mapped[str] = mapped_column(String(30), nullable=False)
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(300), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now(), onupdate=datetime.now(), nullable=False
+    )
 
     created_vote_topics: Mapped[List["VoteTopicModel"]] = relationship(
         back_populates="creator"
