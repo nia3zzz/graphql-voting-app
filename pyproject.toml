@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "alembic>=1.17.1",
+    "bcrypt>=5.0.0",
     "fastapi[standard]>=0.119.1",
     "graphene>=3.0",
     "graphene-sqlalchemy>=2.1.0",
