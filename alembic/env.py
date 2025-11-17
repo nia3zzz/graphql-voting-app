@@ -8,8 +8,9 @@ from alembic import context
 from src.db.base import Base
 from src.models.association_table import voters_association_table
 from src.models.users_model import UserModel
-from src.models.vote_topics import VoteTopicModel
-from src.models.votes import VoteModel
+from src.models.vote_topics_model import VoteTopicModel
+from src.models.votes_model import VoteModel
+from src.models.refresh_token_model import RefreshTokenModel
 
 from dotenv import load_dotenv
 import os
