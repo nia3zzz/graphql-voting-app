@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .users_model import UserModel
-    from .votes import VoteModel
+    from .votes_model import VoteModel
 
 
 class VoteTopicModel(Base):

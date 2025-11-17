@@ -1,5 +1,5 @@
 from graphene_sqlalchemy import SQLAlchemyObjectType
-from src.models.votes import VoteModel
+from src.models.votes_model import VoteModel
 
 
 class VoteType(SQLAlchemyObjectType):

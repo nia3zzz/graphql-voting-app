@@ -9,7 +9,8 @@ from typing import List
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .vote_topics import VoteTopicModel
+    from .vote_topics_model import VoteTopicModel
+    from .refresh_token_model import RefreshTokenModel
 
 
 class UserModel(Base):
@@ -32,4 +33,8 @@ class UserModel(Base):
 
     voted_vote_topics: Mapped[List["VoteTopicModel"]] = relationship(
         secondary=voters_association_table, back_populates="voters"
+    )
+
+    refresh_tokens: Mapped[List["RefreshTokenModel"]] = relationship(
+        back_populates="author_user"
     )
