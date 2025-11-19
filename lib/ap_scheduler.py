@@ -15,7 +15,7 @@ def clear_refresh_tokens():
             expired_sessions.delete()
             print("Task executed!")
     except Exception as e:
-        print(f"Error occurred in clear_refresh_tokens: {e}")
+        raise RuntimeError(f"Error occurred in clear_refresh_tokens: {e}")
 
 
 scheduler = BackgroundScheduler()

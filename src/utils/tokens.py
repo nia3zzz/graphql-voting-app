@@ -1,9 +1,9 @@
-from src.db.database import SessionLocal
 import secrets
 from src.models.refresh_token_model import RefreshTokenModel
 from lib.redis import redisConnection
 from datetime import datetime
 from uuid import UUID
+from sqlalchemy import select
 
 
 # create refresh token and store it in db
@@ -15,8 +15,9 @@ def create_refresh_token(user_id, session):
 
         refresh_token = RefreshTokenModel(user_id=user_id, token=token_hex)
         session.add(refresh_token)
+        session.flush()
 
-        return True
+        return token_hex
     except Exception as e:
         raise RuntimeError(f"Error creating refresh token: {e}")
 
@@ -26,8 +27,12 @@ def create_access_token(user_id, session):
     # receive the user id and the session from the parent mutation
     try:
         # check if the user has a refresh token
+
+        check_refresh_token_stmt = select(RefreshTokenModel).where(
+            RefreshTokenModel.user_id == user_id
+        )
         check_refresh_token = (
-            session.query(RefreshTokenModel).filter_by(user_id=user_id).first()
+            session.execute(check_refresh_token_stmt).scalars().first()
         )
 
         if not check_refresh_token:
