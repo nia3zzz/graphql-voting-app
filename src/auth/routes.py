@@ -105,7 +105,7 @@ def login_user(request_body: AuthLoginUserType):
             if not access_token:
                 raise HTTPException(
                     status_code=500,
-                    detail={"message": "Something went wrong...", "data": {}},
+                    detail={"message": "Something went wrong.", "data": {}},
                 )
 
             response = JSONResponse(
@@ -133,7 +133,7 @@ def login_user(request_body: AuthLoginUserType):
             return response
     except HTTPException as e:
         raise e
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=500, detail={"message": "Something went wrong.", "data": {}}
         )
@@ -186,7 +186,77 @@ def logout_user(request: Request):
         )
 
         return response
-    except Exception as e:
+    except Exception:
+        raise HTTPException(
+            status_code=500, detail={"message": "Something went wrong.", "data": {}}
+        )
+
+
+# recieve the access token once again
+@auth_routes.post("/refresh", status_code=200)
+def refresh_user_access_token(request: Request):
+    # check if the client already has a access token
+    check_existing_access_cookie = request.cookies.get("access_token")
+
+    if check_existing_access_cookie:
+        raise HTTPException(
+            status_code=403, detail={"message": "Bad request.", "data": {}}
+        )
+
+    # validate the cookie and hold the user id
+    refresh_cookie = request.cookies.get("refresh_token")
+
+    if not refresh_cookie:
+        raise HTTPException(
+            status_code=401, detail={"message": "User unauthenticated.", "data": {}}
+        )
+
+    try:
+        # create session and look for the session with cookie value
+        with SessionLocal.begin() as session:
+            # if no refresh session, return unauthenticated error response
+            get_session_stmt = select(RefreshTokenModel).where(
+                RefreshTokenModel.token == refresh_cookie
+            )
+
+            check_user_session_exists = (
+                session.execute(get_session_stmt).scalars().first()
+            )
+
+            if not check_user_session_exists:
+                raise HTTPException(
+                    status_code=401,
+                    detail={"message": "User unauthenticated.", "data": {}},
+                )
+
+            # if refresh session is found generate new access token and return to client
+            access_token = create_access_token(
+                check_user_session_exists.user_id, session
+            )
+
+            if not access_token:
+                raise HTTPException(
+                    status_code=500,
+                    detail={"message": "Something went wrong.", "data": {}},
+                )
+
+            response = JSONResponse(
+                content={"message": "Access refresh successfull.", "data": {}},
+                status_code=200,
+            )
+
+            response.set_cookie(
+                key="access_token",
+                value=access_token,
+                max_age=3600,
+                secure=True,
+                httponly=True,
+                samesite="strict",
+            )
+            return response
+    except HTTPException as e:
+        raise e
+    except Exception:
         raise HTTPException(
             status_code=500, detail={"message": "Something went wrong.", "data": {}}
         )
