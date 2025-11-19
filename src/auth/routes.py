@@ -7,6 +7,10 @@ from sqlalchemy import select
 from src.models.users_model import UserModel
 from lib.hash_pass import hash_password, verify_password
 from src.utils.tokens import create_refresh_token, create_access_token
+from src.utils.auth_validator import auth_validator
+from fastapi import Request
+from src.models.refresh_token_model import RefreshTokenModel
+from lib.redis import redisConnection
 
 # define auth router with prefix and tags
 auth_routes = APIRouter(prefix="/auth", tags=["Auth Routes"])
@@ -64,6 +68,7 @@ def register_user(request_body: AuthRegisterUserType):
         )
 
 
+# login user api route
 @auth_routes.post("/login", status_code=200)
 def login_user(request_body: AuthLoginUserType):
     # main business logic
@@ -128,6 +133,59 @@ def login_user(request_body: AuthLoginUserType):
             return response
     except HTTPException as e:
         raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail={"message": "Something went wrong.", "data": {}}
+        )
+
+
+# logout user api route
+@auth_routes.post("/logout", status_code=200)
+def logout_user(request: Request):
+    # validate the cookie and hold the user id
+    auth_validation = auth_validator(request)
+
+    if not auth_validation:
+        raise HTTPException(
+            status_code=401, detail={"message": "User unauthenticated.", "data": {}}
+        )
+
+    user_id = auth_validation["user_id"]
+
+    try:
+        # delete all the sessions of the user
+        with SessionLocal.begin() as session:
+            (
+                session.query(RefreshTokenModel)
+                .filter(user_id == user_id)
+                .delete(synchronize_session=False)
+            )
+
+        token_hex = str(auth_validation["access_cookie"])
+
+        # delete the access token saved in redis
+        redisConnection.delete(f"access_token:{token_hex}")
+
+        # clear the cookies from the client
+        response = JSONResponse(
+            content={"message": "User logged out."}, status_code=200
+        )
+
+        response.delete_cookie(
+            key="refresh_token",
+            secure=True,
+            httponly=True,
+            samesite="strict",
+        )
+
+        response.delete_cookie(
+            key="access_token",
+            secure=True,
+            httponly=True,
+            samesite="strict",
+        )
+
+        return response
     except Exception as e:
         raise HTTPException(
             status_code=500, detail={"message": "Something went wrong.", "data": {}}
