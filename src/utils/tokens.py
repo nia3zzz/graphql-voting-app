@@ -57,11 +57,13 @@ def create_access_token(user_id, session):
 
 
 # verify access token from redis
-async def verify_access_token(token):
+def verify_access_token(token):
     try:
-        user_id = await redisConnection.get(f"access_token:{token}")
-        if user_id:
-            return UUID(user_id.split(":")[1])
+        bytes_user_id = redisConnection.get(f"access_token:{token}")
+
+        if bytes_user_id:
+            user_id = bytes_user_id.decode().split(":")[1]
+            return UUID(user_id)
         return None
     except Exception as e:
         raise RuntimeError(f"Error verifying access token: {e}")

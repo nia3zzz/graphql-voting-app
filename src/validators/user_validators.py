@@ -10,3 +10,8 @@ class AuthRegisterUserType(BaseModel):
 class AuthLoginUserType(BaseModel):
     email: EmailStr
     password: str = Field(min_length=6, max_length=50)
+
+
+class UpdateUserArgument(BaseModel):
+    name: str = Field(min_length=3, max_length=30)
+    email: EmailStr

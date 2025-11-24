@@ -1,4 +1,5 @@
 from graphene import ObjectType, String, Schema
+from src.graphQL.users.mutations import UserMutations
 
 
 class Query(ObjectType):
@@ -8,4 +9,8 @@ class Query(ObjectType):
         return f"Hello {first_name}!"
 
 
-schema = Schema(query=Query)
+class Mutation(UserMutations, ObjectType):
+    pass
+
+
+schema = Schema(query=Query, mutation=Mutation)
