@@ -260,3 +260,64 @@ def refresh_user_access_token(request: Request):
         raise HTTPException(
             status_code=500, detail={"message": "Something went wrong.", "data": {}}
         )
+
+
+# delete user reest api
+@auth_routes.post("/delete", status_code=200)
+def delete_user(request: Request):
+    try:
+        # validate the user authentication
+        auth_validation = auth_validator(request)
+
+        if not auth_validation:
+            raise HTTPException(
+                status_code=401, detail={"message": "User unauthenticated.", "data": {}}
+            )
+
+        # access the returned data
+        user_id = auth_validation["user_id"]
+        token_hex = auth_validation["access_cookie"]
+
+        # connect to the database
+        with SessionLocal.begin() as session:
+            # delete the user
+            find_user = session.scalars(
+                select(UserModel).where(UserModel.id == user_id)
+            ).one()
+
+            # session document will be auto deleted
+            session.delete(find_user)
+
+        # delete the access token from server
+        redisConnection.delete(f"access_token:{token_hex}")
+
+        # construct the json response and delete the cookies
+        response = JSONResponse(
+            content={
+                "message": "User deleted successfully.",
+                "data": {"id": str(user_id)},
+            },
+            status_code=200,
+        )
+
+        response.delete_cookie(
+            key="refresh_token",
+            secure=True,
+            httponly=True,
+            samesite="strict",
+        )
+
+        response.delete_cookie(
+            key="access_token",
+            secure=True,
+            httponly=True,
+            samesite="strict",
+        )
+
+        return response
+    except HTTPException as e:
+        raise e
+    except Exception:
+        raise HTTPException(
+            status_code=500, detail={"message": "Something went wrong.", "data": {}}
+        )

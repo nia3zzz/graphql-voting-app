@@ -1,5 +1,7 @@
 import graphene
-from src.validators.user_validators import UpdateUserArgument
+from src.validators.user_validators import (
+    UpdateUserArgumentTypeValidator,
+)
 from pydantic import ValidationError
 from src.utils.auth_validator import auth_validator
 from src.db.database import SessionLocal
@@ -14,10 +16,12 @@ class UpdateUserMutation(graphene.Mutation):
         name = graphene.String()
         email = graphene.String()
 
+    status = graphene.Boolean()
     message = graphene.String()
     data = graphene.Field(UserType)
 
-    def __init__(self, message, data):
+    def __init__(self, status, message, data):
+        self.status = status
         self.message = message
         self.data = data
 
@@ -27,12 +31,14 @@ class UpdateUserMutation(graphene.Mutation):
             auth_validation = auth_validator(info.context["request"])
 
             if not auth_validation:
-                return UpdateUserMutation(message="User unauthenticated.", data=None)
+                return UpdateUserMutation(
+                    status=False, message="User unauthenticated.", data=None
+                )
 
             user_id = auth_validation["user_id"]
 
             # validation of arguments
-            validate = UpdateUserArgument(name=name, email=email)
+            validate = UpdateUserArgumentTypeValidator(name=name, email=email)
 
             # connect to database
             with SessionLocal.begin() as session:
@@ -47,7 +53,7 @@ class UpdateUserMutation(graphene.Mutation):
                     and find_user.email == validate.email
                 ):
                     return UpdateUserMutation(
-                        message="No updating data found.", data=None
+                        status=False, message="No updating data found.", data=None
                     )
 
                 # update the name and email
@@ -59,12 +65,16 @@ class UpdateUserMutation(graphene.Mutation):
                 session.expunge(find_user)
 
                 return UpdateUserMutation(
-                    message="User updated successfully.", data=find_user
+                    status=True, message="User updated successfully.", data=find_user
                 )
         except ValidationError as e:
-            return UpdateUserMutation(message=e.errors()[0]["msg"], data=None)
+            return UpdateUserMutation(
+                status=False, message=e.errors()[0]["msg"], data=None
+            )
         except Exception:
-            return UpdateUserMutation(message="Something went wrong.", data=None)
+            return UpdateUserMutation(
+                status=False, message="Something went wrong.", data=None
+            )
 
 
 # user mutation class to combine all the muration under it

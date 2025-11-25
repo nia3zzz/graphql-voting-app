@@ -18,7 +18,7 @@ class VoteTopicModel(Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     description: Mapped[str] = mapped_column(String(300), nullable=False)
-    created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.now(), nullable=False
     )

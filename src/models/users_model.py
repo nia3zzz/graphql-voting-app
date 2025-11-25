@@ -28,7 +28,7 @@ class UserModel(Base):
     )
 
     created_vote_topics: Mapped[List["VoteTopicModel"]] = relationship(
-        back_populates="creator"
+        back_populates="creator", cascade="all, delete-orphan"
     )
 
     voted_vote_topics: Mapped[List["VoteTopicModel"]] = relationship(
@@ -36,5 +36,5 @@ class UserModel(Base):
     )
 
     refresh_tokens: Mapped[List["RefreshTokenModel"]] = relationship(
-        back_populates="author_user"
+        back_populates="author_user", cascade="all, delete-orphan"
     )
