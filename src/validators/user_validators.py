@@ -15,3 +15,9 @@ class AuthLoginUserType(BaseModel):
 class UpdateUserArgumentTypeValidator(BaseModel):
     name: str = Field(min_length=3, max_length=30)
     email: EmailStr
+
+
+class AuthChangeUserPasswordType(BaseModel):
+    old_password: str = Field(min_length=6, max_length=50)
+    new_password: str = Field(min_length=6, max_length=50)
+    confirm_new_password: str = Field(min_length=6, max_length=50)

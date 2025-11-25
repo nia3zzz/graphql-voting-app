@@ -1,7 +1,11 @@
 # for authentication the app uses rest apis
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
-from src.validators.user_validators import AuthRegisterUserType, AuthLoginUserType
+from src.validators.user_validators import (
+    AuthRegisterUserType,
+    AuthLoginUserType,
+    AuthChangeUserPasswordType,
+)
 from src.db.database import SessionLocal
 from sqlalchemy import select
 from src.models.users_model import UserModel
@@ -168,7 +172,7 @@ def logout_user(request: Request):
 
         # clear the cookies from the client
         response = JSONResponse(
-            content={"message": "User logged out."}, status_code=200
+            content={"message": "User logged out.", "data": {}}, status_code=200
         )
 
         response.delete_cookie(
@@ -263,21 +267,21 @@ def refresh_user_access_token(request: Request):
 
 
 # delete user reest api
-@auth_routes.post("/delete", status_code=200)
+@auth_routes.delete("/delete", status_code=200)
 def delete_user(request: Request):
-    try:
-        # validate the user authentication
-        auth_validation = auth_validator(request)
+    # validate the user authentication
+    auth_validation = auth_validator(request)
 
-        if not auth_validation:
-            raise HTTPException(
-                status_code=401, detail={"message": "User unauthenticated.", "data": {}}
-            )
+    if not auth_validation:
+        raise HTTPException(
+            status_code=401, detail={"message": "User unauthenticated.", "data": {}}
+        )
 
         # access the returned data
-        user_id = auth_validation["user_id"]
-        token_hex = auth_validation["access_cookie"]
+    user_id = auth_validation["user_id"]
+    token_hex = auth_validation["access_cookie"]
 
+    try:
         # connect to the database
         with SessionLocal.begin() as session:
             # delete the user
@@ -315,6 +319,87 @@ def delete_user(request: Request):
         )
 
         return response
+    except HTTPException as e:
+        raise e
+    except Exception:
+        raise HTTPException(
+            status_code=500, detail={"message": "Something went wrong.", "data": {}}
+        )
+
+
+# change password rest api
+@auth_routes.put("/changepassword", status_code=200)
+def change_user_password(request: Request, request_body: AuthChangeUserPasswordType):
+    # validate the user
+    auth_validation = auth_validator(request)
+
+    if not auth_validation:
+        raise HTTPException(
+            status_code=401, detail={"message": "User unauthenticated.", "data": {}}
+        )
+
+    # access the returned data
+    user_id = auth_validation["user_id"]
+    token_hex = str(auth_validation["access_cookie"])
+
+    try:
+        # connection to db
+        with SessionLocal.begin() as session:
+            find_user = session.scalars(
+                select(UserModel).where(UserModel.id == user_id)
+            ).one()
+
+            # check password
+            check_password = verify_password(
+                request_body.old_password, find_user.password
+            )
+
+            if not check_password:
+                raise HTTPException(
+                    status_code=401,
+                    detail={"message": "Invalid old password.", "data": {}},
+                )
+
+            if request_body.new_password != request_body.confirm_new_password:
+                raise HTTPException(
+                    status_code=400,
+                    detail={"message": "New passwords don't match.", "data": {}},
+                )
+
+            # hash the new pass and update the user's password
+            hashed_password = hash_password(request_body.new_password)
+
+            find_user.password = hashed_password
+
+            # construct the response and delete server sessions and client cookies
+            session.query(RefreshTokenModel).filter(user_id == user_id).delete(
+                synchronize_session=False
+            )
+
+            # delete the access token saved in redis
+            redisConnection.delete(f"access_token:{token_hex}")
+
+            response = JSONResponse(
+                content={"message": "Password changed successfully.", "data": {}},
+                status_code=200,
+            )
+
+            response.delete_cookie(
+                key="refresh_token",
+                secure=True,
+                httponly=True,
+                samesite="strict",
+            )
+
+            response.delete_cookie(
+                key="access_token",
+                secure=True,
+                httponly=True,
+                samesite="strict",
+            )
+
+            return response
+
     except HTTPException as e:
         raise e
     except Exception:
