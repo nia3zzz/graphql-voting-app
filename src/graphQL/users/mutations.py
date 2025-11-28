@@ -26,17 +26,17 @@ class UpdateUserMutation(graphene.Mutation):
         self.data = data
 
     def mutate(self, info, name, email):
+        # validate user authentication
+        auth_validation = auth_validator(info.context["request"])
+
+        if not auth_validation:
+            return UpdateUserMutation(
+                status=False, message="User unauthenticated.", data=None
+            )
+
+        user_id = auth_validation["user_id"]
+
         try:
-            # validate user authentication
-            auth_validation = auth_validator(info.context["request"])
-
-            if not auth_validation:
-                return UpdateUserMutation(
-                    status=False, message="User unauthenticated.", data=None
-                )
-
-            user_id = auth_validation["user_id"]
-
             # validation of arguments
             validate = UpdateUserArgumentTypeValidator(name=name, email=email)
 

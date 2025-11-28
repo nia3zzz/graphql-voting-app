@@ -1,8 +1,10 @@
 from graphene import ObjectType, String, Schema
 from src.graphQL.users.mutations import UserMutations
 from src.graphQL.users.queries import UserQuerys
+from src.graphQL.vote_topics.mutations import VoteTopicMutations
 
 # construct the parent classes by providing child classes as parameters in query, mutation and subscription
+
 
 class Query(UserQuerys, ObjectType):
     hello = String(first_name=String(default_value="world"))
@@ -11,7 +13,7 @@ class Query(UserQuerys, ObjectType):
         return f"Hello {first_name}!"
 
 
-class Mutation(UserMutations, ObjectType):
+class Mutation(UserMutations, VoteTopicMutations, ObjectType):
     pass
 
 
