@@ -12,7 +12,7 @@ class VoteModel(Base):
     vote_option: Mapped[str] = mapped_column(String(100), nullable=False)
     vote_count: Mapped[int] = mapped_column(nullable=False, default=0)
     vote_topic_id: Mapped[UUID] = mapped_column(
-        ForeignKey("vote_topics.id"), nullable=False
+        ForeignKey("vote_topics.id", ondelete="CASCADE"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.now(), nullable=False
