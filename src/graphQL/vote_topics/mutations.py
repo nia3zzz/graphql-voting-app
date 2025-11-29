@@ -1,11 +1,15 @@
 import graphene
-from src.validators.vote_topic_validators import CreateVoteTopicArgumentTypeValidator
+from src.validators.vote_topic_validators import (
+    CreateVoteTopicArgumentTypeValidator,
+    DeleteVoteTopicArgumentTypeValidator,
+)
 from pydantic import ValidationError
 from src.utils.auth_validator import auth_validator
 from src.db.database import SessionLocal
 from src.models.vote_topics_model import VoteTopicModel
 from src.models.votes_model import VoteModel
 from src.graphQL.vote_topics.types import VoteTopicType
+from sqlalchemy import select
 
 
 # mutation for creating a vote topic
@@ -77,6 +81,75 @@ class CreateVoteTopicMutation(graphene.Mutation):
             )
 
 
+class DeleteVoteTopicMutation(graphene.Mutation):
+    class Arguments:
+        vote_topc_id = graphene.String()
+
+    status = graphene.Boolean()
+    message = graphene.String()
+    data = graphene.Field(VoteTopicType)
+
+    def __init__(self, status, message, data):
+        self.status = status
+        self.message = message
+        self.data = data
+
+    def mutate(self, info, vote_topc_id):
+        # validate the user auth
+        auth_validation = auth_validator(info.context["request"])
+
+        if not auth_validation:
+            return DeleteVoteTopicMutation(
+                status=False, message="User unauthenticated.", data=None
+            )
+
+        user_id = auth_validation["user_id"]
+
+        try:
+            # validate the input arguments
+            validate = DeleteVoteTopicArgumentTypeValidator(vote_topic_id=vote_topc_id)
+
+            # open data base session
+            with SessionLocal.begin() as session:
+
+                # check if a vote topic exists with the provided vote topic id and user making request is the author
+
+                find_vote_topic = session.scalars(
+                    select(VoteTopicModel).where(
+                        VoteTopicModel.id == validate.vote_topic_id
+                    )
+                ).first()
+                
+                if not find_vote_topic or find_vote_topic.created_by != user_id:
+                    return DeleteVoteTopicMutation(
+                        status=False,
+                        message="Vote topic could not be deleted.",
+                        data=None,
+                    )
+
+                # remove the vote topic from the session to send back to client
+                out_session_vote_topic = find_vote_topic
+                session.expunge(out_session_vote_topic)
+
+                # delete the vote topic
+                session.delete(find_vote_topic)
+
+                return DeleteVoteTopicMutation(
+                    status=True,
+                    message="Vote topic deleted successfully.",
+                    data=out_session_vote_topic,
+                )
+        except ValidationError as e:
+            return DeleteVoteTopicMutation(
+                status=False, message=e.errors()[0]["msg"], data=None
+            )
+        except Exception:
+            return DeleteVoteTopicMutation(
+                status=False, message="Something went wrong.", data=None
+            )
+
+
 # vote topic mutation class to combine all the murations under it
 class VoteTopicMutations(graphene.ObjectType):
     create_vote_topic = CreateVoteTopicMutation.Field()
+    delete_vote_topic = DeleteVoteTopicMutation.Field()
