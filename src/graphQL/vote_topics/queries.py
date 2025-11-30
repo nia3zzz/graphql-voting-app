@@ -2,8 +2,11 @@ import graphene
 from src.utils.auth_validator import auth_validator
 from src.db.database import SessionLocal
 from sqlalchemy import select, desc
-from src.graphQL.vote_topics.types import GetVoteTopicsType
-from src.validators.vote_topic_validators import GetVoteTopicsInputTypeValidator
+from src.graphQL.vote_topics.types import GetVoteTopicsType, VoteTopicType
+from src.validators.vote_topic_validators import (
+    GetVoteTopicsInputTypeValidator,
+    GetVoteTopicByIdInputTypeValidator,
+)
 from pydantic import ValidationError
 from src.models.vote_topics_model import VoteTopicModel
 
@@ -20,6 +23,17 @@ class GetVoteTopicsQueryResponse(graphene.ObjectType):
         self.data = data
 
 
+class GetVoteTopicByIdQueryResponse(graphene.ObjectType):
+    status = graphene.Boolean()
+    message = graphene.String()
+    data = graphene.Field(VoteTopicType)
+
+    def __init__(self, status: bool, message: str, data=None):
+        self.status = status
+        self.message = message
+        self.data = data
+
+
 # vote topic queries parent class
 class VoteTopicQuerys(graphene.ObjectType):
     # define the query
@@ -27,6 +41,10 @@ class VoteTopicQuerys(graphene.ObjectType):
         GetVoteTopicsQueryResponse,
         limit=graphene.Int(required=False),
         skip=graphene.Int(required=False),
+    )
+
+    get_vote_topic_by_id = graphene.Field(
+        GetVoteTopicByIdQueryResponse, vote_topic_id=graphene.String(required=True)
     )
 
     # resolve the defined query
@@ -66,5 +84,48 @@ class VoteTopicQuerys(graphene.ObjectType):
             )
         except Exception:
             return GetVoteTopicsQueryResponse(
+                status=False, message="Something went wrong.", data=None
+            )
+
+    # resolver for get vote topic query by id
+    def resolve_get_vote_topic_by_id(self, info, vote_topic_id):
+        # validate the user
+        auth_validation = auth_validator(info.context["request"])
+
+        if not auth_validation:
+            return GetVoteTopicByIdQueryResponse(
+                status=False, message="User not authenticated.", data=None
+            )
+
+        try:
+            # validate the query input
+            validate = GetVoteTopicByIdInputTypeValidator(vote_topic_id=vote_topic_id)
+
+            # open a database session
+            with SessionLocal.begin() as session:
+                # select the vote topic using the id
+                vote_topic = session.scalars(
+                    select(VoteTopicModel).where(
+                        VoteTopicModel.id == validate.vote_topic_id
+                    )
+                ).first()
+
+                if not vote_topic:
+                    return GetVoteTopicByIdQueryResponse(
+                        status=False, message="Vote topic not found.", data=None
+                    )
+
+                # hold the data out of session
+                session.expunge(vote_topic)
+
+                return GetVoteTopicByIdQueryResponse(
+                    status=True, message="Vote topic data fetched.", data=vote_topic
+                )
+        except ValidationError as e:
+            return GetVoteTopicByIdQueryResponse(
+                status=False, message=e.errors()[0]["msg"], data=None
+            )
+        except Exception:
+            return GetVoteTopicByIdQueryResponse(
                 status=False, message="Something went wrong.", data=None
             )

@@ -14,3 +14,7 @@ class DeleteVoteTopicArgumentTypeValidator(BaseModel):
 class GetVoteTopicsInputTypeValidator(BaseModel):
     limit: Optional[int] = Field(ge=10, le=100, default=10)
     skip: Optional[int] = Field(ge=0, default=0)
+
+
+class GetVoteTopicByIdInputTypeValidator(BaseModel):
+    vote_topic_id: str = Field(min_length=32, max_length=36)
