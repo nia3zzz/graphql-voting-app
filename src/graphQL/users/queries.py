@@ -7,24 +7,29 @@ from src.models.users_model import UserModel
 
 
 # response wrapper
-class UserProfileResponse(graphene.ObjectType):
+class GetUserProfileQueryResponse(graphene.ObjectType):
     status = graphene.Boolean()
     message = graphene.String()
     data = graphene.Field(UserType)
+
+    def __init__(self, status: bool, message: str, data=None):
+        self.status = status
+        self.message = message
+        self.data = data
 
 
 # user queries parent class
 class UserQuerys(graphene.ObjectType):
     # define the queries with their response type
-    user_profile = graphene.Field(UserProfileResponse)
+    get_user_profile = graphene.Field(GetUserProfileQueryResponse)
 
     # resolvers for the defined queries
-    def resolve_user_profile(self, info):
+    def resolve_get_user_profile(self, info):
         # validate the user
         auth_validation = auth_validator(info.context["request"])
 
         if not auth_validation:
-            return UserProfileResponse(
+            return GetUserProfileQueryResponse(
                 status=False, message="User unauthenticated.", data=None
             )
 
@@ -37,14 +42,14 @@ class UserQuerys(graphene.ObjectType):
                 find_user = session.scalars(
                     select(UserModel).where(UserModel.id == user_id)
                 ).one()
-                
+
                 # hold the user data outside the session to return it
                 session.expunge(find_user)
-                
-                return UserProfileResponse(
+
+                return GetUserProfileQueryResponse(
                     status=True, message="User data recieved.", data=find_user
                 )
         except Exception:
-            return UserProfileResponse(
+            return GetUserProfileQueryResponse(
                 status=False, message="Something went wrong.", data=None
             )

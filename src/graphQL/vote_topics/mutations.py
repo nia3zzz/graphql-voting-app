@@ -81,6 +81,7 @@ class CreateVoteTopicMutation(graphene.Mutation):
             )
 
 
+# mutation to delete a vote topic
 class DeleteVoteTopicMutation(graphene.Mutation):
     class Arguments:
         vote_topc_id = graphene.String()
@@ -119,7 +120,7 @@ class DeleteVoteTopicMutation(graphene.Mutation):
                         VoteTopicModel.id == validate.vote_topic_id
                     )
                 ).first()
-                
+
                 if not find_vote_topic or find_vote_topic.created_by != user_id:
                     return DeleteVoteTopicMutation(
                         status=False,
