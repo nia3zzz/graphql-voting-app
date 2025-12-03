@@ -181,7 +181,83 @@ class CastVoteMutation(graphene.Mutation):
             )
 
 
+# mutation for deleting a vote option
+class DeleteVoteOptionMutation(graphene.Mutation):
+    class Arguments:
+        vote_option_id = graphene.String()
+
+    status = graphene.Boolean()
+    message = graphene.String()
+    data = graphene.Field(VoteType)
+
+    def __init__(self, status, message, data):
+        self.status = status
+        self.message = message
+        self.data = data
+
+    def mutate(self, info, vote_option_id):
+        # validate the user authentication
+        auth_validation = auth_validator(info.context["request"])
+
+        if not auth_validation:
+            return DeleteVoteOptionMutation(
+                status=False, message="User unauthenticated.", data=None
+            )
+
+        try:
+            # using the cast vote validator as they require the same validation
+            validate = CastVoteArgumentTypeValidator(vote_option_id=vote_option_id)
+
+            # open up the database session
+            with SessionLocal.begin() as session:
+                # find the vote option
+                find_vote_option = session.scalars(
+                    select(VoteModel).where(VoteModel.id == validate.vote_option_id)
+                ).first()
+
+                if not find_vote_option:
+                    return DeleteVoteOptionMutation(
+                        status=False, message="Vote option not found.", data=None
+                    )
+
+                # check if the vote topic has atleast 2 vote options
+                check_vote_options_count = session.scalars(
+                    select(VoteModel).where(
+                        VoteModel.vote_topic_id == find_vote_option.vote_topic_id
+                    )
+                ).all()
+
+                if len(check_vote_options_count) <= 2:
+                    return DeleteVoteOptionMutation(
+                        status=False,
+                        message="Vote topic must have at least 2 vote options.",
+                        data=None,
+                    )
+
+                # delete the vote option
+                session.delete(find_vote_option)
+                session.flush()
+
+                session.expunge(find_vote_option)
+
+                return DeleteVoteOptionMutation(
+                    status=True,
+                    message="Vote option deleted successfully.",
+                    data=find_vote_option,
+                )
+
+        except ValidationError as e:
+            return DeleteVoteOptionMutation(
+                status=False, message=e.errors()[0]["msg"], data=None
+            )
+        except Exception:
+            return DeleteVoteOptionMutation(
+                status=False, message="Something went wrong.", data=None
+            )
+
+
 # vote topic option mutation class to combine all the murations under it
 class VoteTopicOptionMutations(graphene.ObjectType):
     add_vote_option = AddVoteOptionMutation.Field()
     cast_vote = CastVoteMutation.Field()
+    delete_vote_option = DeleteVoteOptionMutation.Field()
