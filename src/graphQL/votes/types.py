@@ -24,3 +24,15 @@ class GetVoteOptionsType(SQLAlchemyObjectType):
     class Meta:
         model = VoteModel
         exclude_fields = ("vote_topic_id", "vote_topic")
+
+
+class VoteCountUpdateType(SQLAlchemyObjectType):
+    class Meta:
+        model = VoteModel
+        exclude_fields = (
+            "vote_option",
+            "vote_topic_id",
+            "created_at",
+            "updated_at",
+            "vote_topic",
+        )

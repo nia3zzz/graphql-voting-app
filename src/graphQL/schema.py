@@ -5,6 +5,7 @@ from src.graphQL.vote_topics.mutations import VoteTopicMutations
 from src.graphQL.vote_topics.queries import VoteTopicQuerys
 from src.graphQL.votes.mutations import VoteTopicOptionMutations
 from src.graphQL.votes.queries import VoteOptionQuerys
+from src.graphQL.votes.subscriptions import VoteOptionSubscription
 
 # construct the parent classes by providing child classes as parameters in query, mutation and subscription
 
@@ -20,4 +21,8 @@ class Mutation(UserMutations, VoteTopicMutations, VoteTopicOptionMutations, Obje
     pass
 
 
-schema = Schema(query=Query, mutation=Mutation)
+class Subscription(VoteOptionSubscription, ObjectType):
+    pass
+
+
+schema = Schema(query=Query, mutation=Mutation, subscription=Subscription)

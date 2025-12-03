@@ -54,7 +54,7 @@ class VoteTopicQuerys(graphene.ObjectType):
 
         if not auth_validation:
             return GetVoteTopicsQueryResponse(
-                status=False, message="User not authenticated.", data=None
+                status=False, message="User unauthenticated.", data=None
             )
 
         try:
@@ -94,7 +94,7 @@ class VoteTopicQuerys(graphene.ObjectType):
 
         if not auth_validation:
             return GetVoteTopicByIdQueryResponse(
-                status=False, message="User not authenticated.", data=None
+                status=False, message="User unauthenticated.", data=None
             )
 
         try:
