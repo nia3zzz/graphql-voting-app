@@ -18,3 +18,9 @@ class VoteType(SQLAlchemyObjectType):
             ).first()
             session.expunge(vote_topic)
         return vote_topic
+
+
+class GetVoteOptionsType(SQLAlchemyObjectType):
+    class Meta:
+        model = VoteModel
+        exclude_fields = ("vote_topic_id", "vote_topic")

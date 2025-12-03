@@ -4,11 +4,12 @@ from src.graphQL.users.queries import UserQuerys
 from src.graphQL.vote_topics.mutations import VoteTopicMutations
 from src.graphQL.vote_topics.queries import VoteTopicQuerys
 from src.graphQL.votes.mutations import VoteTopicOptionMutations
+from src.graphQL.votes.queries import VoteOptionQuerys
 
 # construct the parent classes by providing child classes as parameters in query, mutation and subscription
 
 
-class Query(UserQuerys, VoteTopicQuerys, ObjectType):
+class Query(UserQuerys, VoteTopicQuerys, VoteOptionQuerys, ObjectType):
     hello = String(first_name=String(default_value="world"))
 
     def resolve_hello(self, info, first_name):
